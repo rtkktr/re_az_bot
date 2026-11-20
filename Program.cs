@@ -1,3 +1,41 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using Bot;
+using Bot.Core;
+using Bot.Core.Errors;
+using Bot.Core.Messages;
+using Bot.Core.Updates;
+using DotNetEnv;
+using MediatR;
+using Microsoft.Extensions.DependencyInjection;
+using Telegram.Bot;
 
-Console.WriteLine("Hello, World!");
+Env.NoClobber().TraversePath().Load();
+
+var token = Environment.GetEnvironmentVariable("BOT_TOKEN");
+if (string.IsNullOrWhiteSpace(token))
+{
+    Console.Error.WriteLine(
+        $"BOT_TOKEN is missing. .env was looked up in: {Environment.CurrentDirectory}");
+    return;
+}
+
+using var cts = new CancellationTokenSource();
+var cancellationToken = cts.Token;
+var bot = new TelegramBotClient(token, cancellationToken: cancellationToken);
+var me = await bot.GetMe();
+
+var services = new ServiceCollection();
+services.AddSingleton<ITelegramBotClient>(bot);
+services.AddMediatR(config => config.RegisterServicesFromAssembly(AssemblyReference.Assembly));
+
+await using var serviceProvider = services.BuildServiceProvider();
+var sender = serviceProvider.GetRequiredService<ISender>();
+var messageHandler = new BotMessageHandler(sender);
+var updateHandler = new BotUpdateHandler(sender);
+var errorHandler = new BotErrorHandler(bot);
+bot.OnError += errorHandler.OnError;
+bot.OnMessage += (message, _) => messageHandler.OnMessage(message, cancellationToken);
+bot.OnUpdate += update => updateHandler.OnUpdate(update, cancellationToken);
+
+Console.WriteLine($"@{me.Username} is running... Press Enter to terminate");
+Console.ReadLine();
+cts.Cancel();
