@@ -1,4 +1,6 @@
 ﻿FROM mcr.microsoft.com/dotnet/runtime:10.0 AS base
+USER root
+RUN mkdir -p /data && chown "$APP_UID" /data
 USER $APP_UID
 WORKDIR /app
 

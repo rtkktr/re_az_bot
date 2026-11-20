@@ -1,5 +1,7 @@
 ﻿**/.dockerignore
 **/.env
+**/bot.db
+**/bot.db-*
 **/.git
 **/.gitignore
 **/.project

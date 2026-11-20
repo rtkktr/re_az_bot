@@ -3,8 +3,10 @@ using Bot.Core;
 using Bot.Core.Errors;
 using Bot.Core.Messages;
 using Bot.Core.Updates;
+using Bot.Data;
 using DotNetEnv;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Telegram.Bot;
 
@@ -21,13 +23,24 @@ if (string.IsNullOrWhiteSpace(token))
 using var cts = new CancellationTokenSource();
 var cancellationToken = cts.Token;
 var bot = new TelegramBotClient(token, cancellationToken: cancellationToken);
-var me = await bot.GetMe();
+
+var connectionString = Environment.GetEnvironmentVariable("BOT_DB_CONNECTION_STRING");
+if (string.IsNullOrWhiteSpace(connectionString))
+    connectionString = "Data Source=bot.db";
 
 var services = new ServiceCollection();
 services.AddSingleton<ITelegramBotClient>(bot);
 services.AddMediatR(config => config.RegisterServicesFromAssembly(AssemblyReference.Assembly));
+services.AddDbContextFactory<BotDbContext>(options => options.UseSqlite(connectionString));
 
 await using var serviceProvider = services.BuildServiceProvider();
+var databaseFactory = serviceProvider.GetRequiredService<IDbContextFactory<BotDbContext>>();
+await using (var database = databaseFactory.CreateDbContext())
+{
+    database.Database.OpenConnection();
+}
+
+var me = await bot.GetMe();
 var sender = serviceProvider.GetRequiredService<ISender>();
 var messageHandler = new BotMessageHandler(sender);
 var updateHandler = new BotUpdateHandler(sender);

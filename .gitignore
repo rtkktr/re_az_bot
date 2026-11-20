@@ -5,5 +5,7 @@ riderModule.iml
 /_ReSharper.Caches/
 
 .env
+/bot.db
+/bot.db-*
 /.idea/
 /.vs/
