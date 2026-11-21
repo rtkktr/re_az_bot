@@ -6,6 +6,7 @@
       dockerfile: Dockerfile
     environment:
       BOT_TOKEN: ${BOT_TOKEN:-}
+      ADMIN_Id: ${ADMIN_Id:-}
       BOT_DB_CONNECTION_STRING: "Data Source=/data/bot.db"
     stdin_open: true
     volumes:

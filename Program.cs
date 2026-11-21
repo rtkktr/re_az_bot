@@ -1,5 +1,4 @@
-﻿using Bot;
-using Bot.Core;
+﻿using Bot.Core;
 using Bot.Core.Errors;
 using Bot.Core.Messages;
 using Bot.Core.Updates;
@@ -8,32 +7,48 @@ using DotNetEnv;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 
 Env.NoClobber().TraversePath().Load();
 
-var token = Environment.GetEnvironmentVariable("BOT_TOKEN");
-if (string.IsNullOrWhiteSpace(token))
+using var cts = new CancellationTokenSource();
+var cancellationToken = cts.Token;
+
+var services = new ServiceCollection();
+services.AddOptions<BotOptions>()
+    .Configure(options =>
+    {
+        options.Token = Environment.GetEnvironmentVariable("BOT_TOKEN") ?? string.Empty;
+
+        var connectionString = Environment.GetEnvironmentVariable("BOT_DB_CONNECTION_STRING");
+        if (!string.IsNullOrWhiteSpace(connectionString))
+            options.DatabaseConnectionString = connectionString;
+
+        if (long.TryParse(Environment.GetEnvironmentVariable("ADMIN_Id"), out var adminId))
+            options.AdminId = adminId;
+    })
+    .Validate(options => !string.IsNullOrWhiteSpace(options.Token), "BOT_TOKEN is missing.");
+
+services.AddSingleton(provider => new TelegramBotClient(
+    provider.GetRequiredService<IOptions<BotOptions>>().Value.Token, cancellationToken: cancellationToken));
+services.AddSingleton<ITelegramBotClient>(provider => provider.GetRequiredService<TelegramBotClient>());
+services.AddMediatR(config => config.RegisterServicesFromAssembly(AssemblyReference.Assembly));
+services.AddDbContextFactory<BotDbContext>((provider, options) =>
+    options.UseSqlite(provider.GetRequiredService<IOptions<BotOptions>>().Value.DatabaseConnectionString));
+
+await using var serviceProvider = services.BuildServiceProvider();
+TelegramBotClient bot;
+try
 {
-    Console.Error.WriteLine(
-        $"BOT_TOKEN is missing. .env was looked up in: {Environment.CurrentDirectory}");
+    bot = serviceProvider.GetRequiredService<TelegramBotClient>();
+}
+catch (OptionsValidationException exception)
+{
+    Console.Error.WriteLine($"{exception.Message} .env was looked up in: {Environment.CurrentDirectory}");
     return;
 }
 
-using var cts = new CancellationTokenSource();
-var cancellationToken = cts.Token;
-var bot = new TelegramBotClient(token, cancellationToken: cancellationToken);
-
-var connectionString = Environment.GetEnvironmentVariable("BOT_DB_CONNECTION_STRING");
-if (string.IsNullOrWhiteSpace(connectionString))
-    connectionString = "Data Source=bot.db";
-
-var services = new ServiceCollection();
-services.AddSingleton<ITelegramBotClient>(bot);
-services.AddMediatR(config => config.RegisterServicesFromAssembly(AssemblyReference.Assembly));
-services.AddDbContextFactory<BotDbContext>(options => options.UseSqlite(connectionString));
-
-await using var serviceProvider = services.BuildServiceProvider();
 var databaseFactory = serviceProvider.GetRequiredService<IDbContextFactory<BotDbContext>>();
 await using (var database = databaseFactory.CreateDbContext())
 {

@@ -1,13 +1,14 @@
 using Bot.Core;
 using Bot.Core.Messages;
 using Bot.Pages;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
 namespace Bot.UseCases.Messages.Start;
 
-internal sealed class StartMessageHandler(ITelegramBotClient bot)
+internal sealed class StartMessageHandler(ITelegramBotClient bot, IOptions<BotOptions> options)
     : IBotMessageHandler<StartMessage>
 {
     public async Task Handle(
@@ -22,14 +23,16 @@ internal sealed class StartMessageHandler(ITelegramBotClient bot)
             return;
         }
 
+        var dashboard = DashboardPage.ForUser(user, options.Value.AdminId);
         await using var logo = AssemblyReference.Assembly.GetManifestResourceStream("Bot.DashboardLogo.png")
                                ?? throw new InvalidOperationException("The dashboard logo is missing.");
+
         await bot.SendPhoto(
             chat.Id,
             InputFile.FromStream(logo, "logo.png"),
-            caption: DashboardPage.Caption(user),
+            caption: dashboard.Caption,
             parseMode: ParseMode.Html,
-            replyMarkup: DashboardPage.Keyboards,
+            replyMarkup: dashboard.Keyboard,
             cancellationToken: cancellationToken);
     }
 }

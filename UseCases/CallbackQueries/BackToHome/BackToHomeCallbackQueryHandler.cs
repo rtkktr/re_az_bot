@@ -1,12 +1,14 @@
+using Bot.Core;
 using Bot.Core.Updates;
 using Bot.Pages;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 
 namespace Bot.UseCases.CallbackQueries.BackToHome;
 
-internal sealed class BackToHomeCallbackQueryHandler(ITelegramBotClient bot)
+internal sealed class BackToHomeCallbackQueryHandler(ITelegramBotClient bot, IOptions<BotOptions> options)
     : IBotCallbackQueryHandler<BackToHomeCallbackQuery>
 {
     public async Task Handle(
@@ -19,14 +21,15 @@ internal sealed class BackToHomeCallbackQueryHandler(ITelegramBotClient bot)
             message.Chat.Id != request.CallbackQuery.From.Id)
             return;
 
+        var dashboard = DashboardPage.ForUser(request.CallbackQuery.From, options.Value.AdminId);
         try
         {
             await bot.EditMessageCaption(
                 message.Chat.Id,
                 message.Id,
-                DashboardPage.Caption(request.CallbackQuery.From),
+                dashboard.Caption,
                 ParseMode.Html,
-                replyMarkup: DashboardPage.Keyboards,
+                replyMarkup: dashboard.Keyboard,
                 cancellationToken: cancellationToken);
         }
         catch (ApiRequestException exception) when (exception.ErrorCode == 400 &&

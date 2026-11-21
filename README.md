@@ -13,6 +13,7 @@ cp .env.example .env
 ```
 
 Set `BOT_TOKEN` in `.env` to the token you received from Telegram's `@BotFather`.
+Set `ADMIN_Id` in `.env` to the numeric Telegram user ID that should see the admin dashboard on `/start`.
 
 ## Run locally
 
