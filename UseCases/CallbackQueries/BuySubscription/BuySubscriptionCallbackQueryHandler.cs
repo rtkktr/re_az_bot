@@ -1,16 +1,18 @@
+using Bot.Core;
 using Bot.Core.Updates;
 using Bot.Pages;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Types.Enums;
 
-namespace Bot.UseCases.CallbackQueries.Buy;
+namespace Bot.UseCases.CallbackQueries.BuySubscription;
 
-internal sealed class BuyCallbackQueryHandler(ITelegramBotClient bot) 
-    : IBotCallbackQueryHandler<BuyCallbackQuery>
+internal sealed class BuySubscriptionCallbackQueryHandler(ITelegramBotClient bot, IOptions<BotOptions> options) 
+    : IBotCallbackQueryHandler<BuySubscriptionCallbackQuery>
 {
     public async Task Handle(
-        BuyCallbackQuery request,
+        BuySubscriptionCallbackQuery request,
         CancellationToken cancellationToken)
     {
         await bot.AnswerCallbackQuery(request.CallbackQuery.Id, cancellationToken: cancellationToken);
@@ -18,15 +20,17 @@ internal sealed class BuyCallbackQueryHandler(ITelegramBotClient bot)
         if (request.CallbackQuery.Message is not { Chat.Type: ChatType.Private, BusinessConnectionId: null, Photo.Length: > 0 } message ||
             message.Chat.Id != request.CallbackQuery.From.Id)
             return;
-
+        
+        var page = new BuySubscriptionPage(request.CallbackQuery.From, options.Value.AdminId);
+        
         try
         {
             await bot.EditMessageCaption(
                 message.Chat.Id,
                 message.Id,
-                BuyPage.Caption(),
+                page.GetCaption(),
                 ParseMode.Html,
-                replyMarkup: BuyPage.Keyboards,
+                replyMarkup: page.GetInlineKeyboardMarkup(),
                 cancellationToken: cancellationToken);
         }
         catch (ApiRequestException exception) when (exception.ErrorCode == 400 &&

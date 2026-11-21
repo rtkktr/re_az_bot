@@ -1,3 +1,5 @@
+using Bot.Pages;
+using Bot.UseCases.Messages.SaveSubscription;
 using Bot.UseCases.Messages.Start;
 using MediatR;
 using Telegram.Bot.Types;
@@ -14,6 +16,8 @@ internal sealed class BotMessageHandler(ISender sender)
         return message.Text switch
         {
             BotMessageConstants.Start => sender.Send(new StartMessage { Message = message }, cancellationToken),
+            _ when message.ReplyToMessage?.Text == AddSubscriptionPage.Prompt =>
+                sender.Send(new SaveSubscriptionMessage { Message = message }, cancellationToken),
             _ => Task.CompletedTask
         };
     }

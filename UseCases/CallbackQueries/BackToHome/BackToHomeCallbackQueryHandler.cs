@@ -21,15 +21,15 @@ internal sealed class BackToHomeCallbackQueryHandler(ITelegramBotClient bot, IOp
             message.Chat.Id != request.CallbackQuery.From.Id)
             return;
 
-        var dashboard = DashboardPage.ForUser(request.CallbackQuery.From, options.Value.AdminId);
+        var dashboard = new DashboardPage(request.CallbackQuery.From, options.Value.AdminId);
         try
         {
             await bot.EditMessageCaption(
                 message.Chat.Id,
                 message.Id,
-                dashboard.Caption,
+                dashboard.GetCaption(),
                 ParseMode.Html,
-                replyMarkup: dashboard.Keyboard,
+                replyMarkup: dashboard.GetInlineKeyboardMarkup(),
                 cancellationToken: cancellationToken);
         }
         catch (ApiRequestException exception) when (exception.ErrorCode == 400 &&

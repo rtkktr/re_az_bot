@@ -52,7 +52,7 @@ catch (OptionsValidationException exception)
 var databaseFactory = serviceProvider.GetRequiredService<IDbContextFactory<BotDbContext>>();
 await using (var database = databaseFactory.CreateDbContext())
 {
-    database.Database.OpenConnection();
+    await database.Database.MigrateAsync(cancellationToken);
 }
 
 var me = await bot.GetMe();

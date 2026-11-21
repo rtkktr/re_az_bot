@@ -1,5 +1,6 @@
+using Bot.UseCases.CallbackQueries.AddSubscription;
 using Bot.UseCases.CallbackQueries.BackToHome;
-using Bot.UseCases.CallbackQueries.Buy;
+using Bot.UseCases.CallbackQueries.BuySubscription;
 using Bot.UseCases.CallbackQueries.History;
 using MediatR;
 using Telegram.Bot.Types;
@@ -17,10 +18,12 @@ internal sealed class BotUpdateHandler(ISender sender)
         {
             BotCallbackQueryConstants.BackToHome =>
                 sender.Send(new BackToHomeCallbackQuery {CallbackQuery = query}, cancellationToken),
-            BotCallbackQueryConstants.Buy =>
-                sender.Send(new BuyCallbackQuery {CallbackQuery = query}, cancellationToken),
+            BotCallbackQueryConstants.BuySubscription =>
+                sender.Send(new BuySubscriptionCallbackQuery {CallbackQuery = query}, cancellationToken),
             BotCallbackQueryConstants.History =>
                 sender.Send(new HistoryCallbackQuery {CallbackQuery = query}, cancellationToken),
+            BotCallbackQueryConstants.AddSubscription =>
+                sender.Send(new AddSubscriptionCallbackQuery { CallbackQuery = query }, cancellationToken),
             _ => Task.CompletedTask
         };
     }

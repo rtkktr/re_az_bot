@@ -23,16 +23,16 @@ internal sealed class StartMessageHandler(ITelegramBotClient bot, IOptions<BotOp
             return;
         }
 
-        var dashboard = DashboardPage.ForUser(user, options.Value.AdminId);
+        var dashboard = new DashboardPage(user, options.Value.AdminId);
         await using var logo = AssemblyReference.Assembly.GetManifestResourceStream("Bot.DashboardLogo.png")
                                ?? throw new InvalidOperationException("The dashboard logo is missing.");
 
         await bot.SendPhoto(
             chat.Id,
             InputFile.FromStream(logo, "logo.png"),
-            caption: dashboard.Caption,
+            caption: dashboard.GetCaption(),
             parseMode: ParseMode.Html,
-            replyMarkup: dashboard.Keyboard,
+            replyMarkup: dashboard.GetInlineKeyboardMarkup(),
             cancellationToken: cancellationToken);
     }
 }

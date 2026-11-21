@@ -1,30 +1,53 @@
 using System.Net;
+using Bot.Core;
 using Bot.Core.Updates;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
 namespace Bot.Pages;
 
-public static class DashboardPage
+internal sealed class DashboardPage(User user, long? adminId = null) : Page(user, adminId)
 {
-    private static InlineKeyboardMarkup UserKeyboard { get; } = new(
-        InlineKeyboardButton.WithCallbackData("خرید VPN", BotCallbackQueryConstants.Buy),
-        InlineKeyboardButton.WithCallbackData("تاریخچهٔ خرید", BotCallbackQueryConstants.History)
-    );
-
-    public static (string Caption, InlineKeyboardMarkup? Keyboard) ForUser(User user, long? adminId)
+    protected override List<List<InlineKeyboardButton>>? SetInlineKeyboardButtonListForUsers()
     {
-        var name = WebUtility.HtmlEncode($"{user.FirstName} {user.LastName}".Trim());
-        var username = user.Username is { Length: > 0 } value ? $"@{WebUtility.HtmlEncode(value)}" : "ثبت نشده";
+        return
+        [
+            [
+                InlineKeyboardButton.WithCallbackData("خرید اشتراک", BotCallbackQueryConstants.BuySubscription),
+                InlineKeyboardButton.WithCallbackData("تاریخچهٔ سفارشات", BotCallbackQueryConstants.History)
+            ]
+        ];
+    }
+
+    protected override List<List<InlineKeyboardButton>>? SetInlineKeyboardButtonListForAdmins()
+    {
+        return
+        [
+            [InlineKeyboardButton.WithCallbackData("افزودن اشتراک", BotCallbackQueryConstants.AddSubscription)]
+        ];
+    }
+
+    protected override string? SetCaptionForUsers()
+    {
+        var name = WebUtility.HtmlEncode($"{User.FirstName} {User.LastName}".Trim());
+        var username = User.Username is { Length: > 0 } value ? $"@{WebUtility.HtmlEncode(value)}" : "ثبت نشده";
         var accountDetails = $"""
-            نام · {name}
-            نام کاربری · {username}
-            شناسهٔ تلگرام · <code>{user.Id}</code>
-            """;
+                              نام · {name}
+                              نام کاربری · {username}
+                              شناسهٔ تلگرام · <code>{User.Id}</code>
+                              """;
+        return $"<b>حساب کاربری رعاض</b>\n\n{accountDetails}";
+    }
 
-        if (user.Id == adminId)
-            return ($"<b>پنل مدیریت رعاض</b>\n\n{accountDetails}\nنقش · مدیر", null);
-
-        return ($"<b>حساب کاربری رعاض</b>\n\n{accountDetails}", UserKeyboard);
+    protected override string? SetCaptionForAdmins()
+    {
+        var name = WebUtility.HtmlEncode($"{User.FirstName} {User.LastName}".Trim());
+        var username = User.Username is { Length: > 0 } value ? $"@{WebUtility.HtmlEncode(value)}" : "ثبت نشده";
+        var accountDetails = $"""
+                              نام · {name}
+                              نام کاربری · {username}
+                              شناسهٔ تلگرام · <code>{User.Id}</code>
+                              """;
+        return $"<b>پنل مدیریت رعاض</b>\n\n{accountDetails}\nنقش · مدیر";
     }
 }
